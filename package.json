@@ -1,0 +1,12 @@
+{
+  "name": "wolven",
+  "version": "0.2.1",
+  "description": "Wolven Programming Language",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js",
+    "run": "node index.js"
+  }
+}

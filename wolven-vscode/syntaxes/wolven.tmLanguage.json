@@ -1,0 +1,104 @@
+{
+  "name": "Wolven",
+  "scopeName": "source.wolven",
+
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#constants"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#functions"
+    }
+  ],
+
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "match": "^\\s*/.*$",
+          "name": "comment.line.wolven"
+        }
+      ]
+    },
+
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.wolven",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "match": "\\\\.",
+              "name": "constant.character.escape.wolven"
+            }
+          ]
+        }
+      ]
+    },
+
+    "keywords": {
+      "patterns": [
+        {
+          "match": "\\b(let|const|fn|return|if|else|while|for|in|break|continue)\\b",
+          "name": "keyword.control.wolven"
+        },
+        {
+          "match": "\\b(and|or|not)\\b",
+          "name": "keyword.operator.logical.wolven"
+        }
+      ]
+    },
+
+    "constants": {
+      "patterns": [
+        {
+          "match": "\\b(true|false|null|undefined)\\b",
+          "name": "constant.language.wolven"
+        }
+      ]
+    },
+
+    "numbers": {
+      "patterns": [
+        {
+          "match": "\\b\\d+(\\.\\d+)?\\b",
+          "name": "constant.numeric.wolven"
+        }
+      ]
+    },
+
+    "operators": {
+      "patterns": [
+        {
+          "match": "==|!=|>=|<=|>|<|\\+|-|\\*|/|%|=",
+          "name": "keyword.operator.wolven"
+        }
+      ]
+    },
+
+    "functions": {
+      "patterns": [
+        {
+          "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*(?=\\s*\\()",
+          "name": "entity.name.function.wolven"
+        }
+      ]
+    }
+  }
+}

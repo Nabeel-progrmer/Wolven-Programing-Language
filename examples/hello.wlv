@@ -1,0 +1,222 @@
+/
+    =================================
+    WOLVEN v0.2.1 TEST
+    =================================
+/
+
+result("=== WOLVEN START ===")
+
+/ Variables /
+
+let name = "Nabeel"
+let age = 18
+
+const language = "Wolven"
+
+result(name)
+result(language)
+
+/ Arithmetic /
+
+let a = 10
+let b = 20
+
+result(a + b)
+result(b - a)
+result(a * b)
+result(b / a)
+
+/ Operator precedence /
+
+result(2 + 3 * 4)
+result((2 + 3) * 4)
+
+/ Equality /
+
+result(10 == 10)
+result(10 == 20)
+result(10 != 20)
+
+/ Comparison /
+
+result(age >= 18)
+result(age < 18)
+
+/ Logical /
+
+result(true and true)
+result(true and false)
+result(false or true)
+result(not false)
+
+/ If / Else /
+
+if age >= 18 {
+    result("Adult")
+} else {
+    result("Minor")
+}
+
+/ Else if /
+
+if age < 13 {
+    result("Child")
+} else if age < 18 {
+    result("Teen")
+} else {
+    result("Adult")
+}
+
+/ Array /
+
+let numbers = [10, 20, 30]
+
+result(numbers)
+
+numbers.add(40)
+
+result(numbers)
+
+result(numbers.size())
+result(numbers.first())
+result(numbers.last())
+
+result(numbers.has(20))
+
+numbers.remove(20)
+
+result(numbers)
+
+result(numbers[0])
+
+numbers[0] = 100
+
+result(numbers)
+
+/ Array methods /
+
+numbers.add(200)
+numbers.add(300)
+
+result(numbers)
+
+numbers.reverse()
+
+result(numbers)
+
+/ Object /
+
+let user = {
+    name: "Nabeel",
+    age: 18,
+    role: "Developer"
+}
+
+result(user)
+
+result(user.name)
+result(user.age)
+
+user.set("country", "Pakistan")
+
+result(user)
+
+result(user.get("country"))
+
+result(user.has("name"))
+
+result(user.keys())
+
+result(user.size())
+
+user.remove("role")
+
+result(user)
+
+/ Object assignment /
+
+user.name = "Wolven Developer"
+
+result(user.name)
+
+/ While /
+
+let counter = 0
+
+while counter < 5 {
+
+    result(counter)
+
+    counter = counter + 1
+}
+
+/ For /
+
+for item in numbers {
+
+    result(item)
+}
+
+/ Continue /
+
+let i = 0
+
+while i < 5 {
+
+    i = i + 1
+
+    if i == 3 {
+        continue
+    }
+
+    result(i)
+}
+
+/ Break /
+
+let j = 0
+
+while j < 10 {
+
+    j = j + 1
+
+    if j == 5 {
+        break
+    }
+
+    result(j)
+}
+
+/ Function /
+
+fn add(a, b) {
+
+    return a + b
+}
+
+let total = add(100, 200)
+
+result(total)
+
+/ Function with array /
+
+fn sum(a, b, c) {
+
+    return a + b + c
+}
+
+result(sum(10, 20, 30))
+
+/ Nested expression /
+
+result(add(10, 20) * 2)
+
+/ Multiline comment /
+
+/
+    This entire section
+    is ignored
+    by Wolven lexer.
+/
+
+result("=== WOLVEN COMPLETE ===")

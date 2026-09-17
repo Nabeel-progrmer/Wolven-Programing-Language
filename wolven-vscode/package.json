@@ -1,0 +1,42 @@
+{
+  "name": "wolven-language",
+  "displayName": "Wolven Language",
+  "description": "Wolven programming language support for Visual Studio Code.",
+  "version": "0.1.0",
+  "publisher": "wolven",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "wolven",
+        "aliases": [
+          "Wolven",
+          "wolven"
+        ],
+        "extensions": [
+          ".wlv"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "wolven",
+        "scopeName": "source.wolven",
+        "path": "./syntaxes/wolven.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "wolven.runFile",
+        "title": "Wolven: Run Current File"
+      }
+    ]
+  }
+}
