@@ -1,12 +1,32 @@
 {
   "name": "wolven",
   "version": "0.2.1",
-  "description": "Wolven Programming Language",
-  "main": "index.js",
+  "description": "Wolven programming language",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nabeel-progrmer/Wolven-Programing-Language.git"
+  },
+  "homepage": "https://github.com/Nabeel-progrmer/Wolven-Programing-Language",
+  "bugs": {
+    "url": "https://github.com/Nabeel-progrmer/Wolven-Programing-Language/issues"
+  },
+  "keywords": [
+    "programming-language",
+    "interpreter",
+    "wolven"
+  ],
   "type": "module",
+  "main": "index.js",
+  "directories": {
+    "bin": "bin"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node index.js",
+    "run": "node index.js",
     "dev": "node index.js",
-    "run": "node index.js"
+    "test": "node tests/index.js"
   }
 }

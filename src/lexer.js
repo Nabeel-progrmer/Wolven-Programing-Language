@@ -1,7 +1,5 @@
 export function tokenize(code) {
-
     const tokens = []
-
     let position = 0
 
     const keywords = {
@@ -15,12 +13,14 @@ export function tokenize(code) {
         else: "ELSE",
 
         while: "WHILE",
-
         for: "FOR",
         in: "IN",
 
         true: "BOOLEAN",
         false: "BOOLEAN",
+
+        null: "NULL",
+        undefined: "UNDEFINED",
 
         and: "AND",
         or: "OR",
@@ -39,10 +39,7 @@ export function tokenize(code) {
     }
 
     function addToken(type, value = type) {
-        tokens.push({
-            type,
-            value
-        })
+        tokens.push({ type, value })
     }
 
     function isDigit(char) {
@@ -50,7 +47,6 @@ export function tokenize(code) {
     }
 
     function isLetter(char) {
-
         return (
             (char >= "a" && char <= "z") ||
             (char >= "A" && char <= "Z") ||
@@ -63,17 +59,13 @@ export function tokenize(code) {
     }
 
     function isLineStart() {
-        const lineStart = code.lastIndexOf("\n", position - 1) + 1
+        const lineStart =
+            code.lastIndexOf("\n", position - 1) + 1
 
         return code.slice(lineStart, position).trim() === ""
     }
 
-    // -------------------------
-    // NUMBER
-    // -------------------------
-
     function readNumber() {
-
         let value = ""
 
         while (isDigit(peek())) {
@@ -84,7 +76,6 @@ export function tokenize(code) {
             peek() === "." &&
             isDigit(peek(1))
         ) {
-
             value += advance()
 
             while (isDigit(peek())) {
@@ -92,18 +83,10 @@ export function tokenize(code) {
             }
         }
 
-        addToken(
-            "NUMBER",
-            Number(value)
-        )
+        addToken("NUMBER", Number(value))
     }
 
-    // -------------------------
-    // STRING
-    // -------------------------
-
     function readString() {
-
         advance()
 
         let value = ""
@@ -112,10 +95,12 @@ export function tokenize(code) {
             position < code.length &&
             peek() !== '"'
         ) {
-
             if (peek() === "\\") {
-
                 advance()
+
+                if (position >= code.length) {
+                    throw new Error("Unterminated string")
+                }
 
                 const escaped = advance()
 
@@ -124,6 +109,9 @@ export function tokenize(code) {
                 }
                 else if (escaped === "t") {
                     value += "\t"
+                }
+                else if (escaped === "r") {
+                    value += "\r"
                 }
                 else if (escaped === '"') {
                     value += '"'
@@ -147,18 +135,10 @@ export function tokenize(code) {
 
         advance()
 
-        addToken(
-            "STRING",
-            value
-        )
+        addToken("STRING", value)
     }
 
-    // -------------------------
-    // IDENTIFIER
-    // -------------------------
-
     function readIdentifier() {
-
         let value = ""
 
         while (
@@ -171,53 +151,41 @@ export function tokenize(code) {
         const keyword = keywords[value]
 
         if (keyword) {
-
             if (value === "true") {
-
-                addToken(
-                    "BOOLEAN",
-                    true
-                )
+                addToken("BOOLEAN", true)
             }
             else if (value === "false") {
-
-                addToken(
-                    "BOOLEAN",
-                    false
-                )
+                addToken("BOOLEAN", false)
+            }
+            else if (value === "null") {
+                addToken("NULL", null)
+            }
+            else if (value === "undefined") {
+                addToken("UNDEFINED", undefined)
             }
             else {
-
-                addToken(
-                    keyword,
-                    value
-                )
+                addToken(keyword, value)
             }
 
             return
         }
 
-        addToken(
-            "IDENTIFIER",
-            value
-        )
+        addToken("IDENTIFIER", value)
     }
 
-    // -------------------------
-    // COMMENT
-    // / anything /
-    // -------------------------
-
     function readComment() {
-
         advance()
 
-        const lineEnd = code.indexOf("\n", position)
-        const closingSlash = code.indexOf("/", position)
+        const lineEnd =
+            code.indexOf("\n", position)
+
+        const closingSlash =
+            code.indexOf("/", position)
 
         if (
             closingSlash !== -1 &&
-            (lineEnd === -1 || closingSlash < lineEnd)
+            (lineEnd === -1 ||
+                closingSlash < lineEnd)
         ) {
             while (
                 position < code.length &&
@@ -237,43 +205,32 @@ export function tokenize(code) {
         }
 
         if (peek() !== "/") {
-            throw new Error(
-                "Unterminated comment"
-            )
+            throw new Error("Unterminated comment")
         }
 
         advance()
     }
 
-    // -------------------------
-    // MAIN LEXER
-    // -------------------------
-
     while (position < code.length) {
-
         const char = peek()
 
-        // whitespace
         if (
             char === " " ||
             char === "\t" ||
             char === "\n" ||
             char === "\r"
         ) {
-
             advance()
-
             continue
         }
 
-        // Wolven comment
+        // Wolven block comment: / comment /
         if (
             char === "/" &&
             isLineStart() &&
             peek(1) !== "=" &&
             peek(1) !== "/"
         ) {
-
             let end = position + 1
 
             while (
@@ -284,53 +241,68 @@ export function tokenize(code) {
             }
 
             if (end < code.length) {
-
                 readComment()
-
                 continue
             }
         }
 
-        // number
+        // // line comment
+        if (
+            char === "/" &&
+            peek(1) === "/"
+        ) {
+            advance()
+            advance()
+
+            while (
+                position < code.length &&
+                peek() !== "\n"
+            ) {
+                advance()
+            }
+
+            continue
+        }
+
         if (isDigit(char)) {
-
             readNumber()
-
             continue
         }
 
-        // string
         if (char === '"') {
-
             readString()
-
             continue
         }
 
-        // identifier
         if (isLetter(char)) {
-
             readIdentifier()
-
             continue
         }
 
-        // two-character operators
         const two =
             char + (peek(1) ?? "")
 
-        if (
-            two === "==" ||
-            two === "!=" ||
-            two === ">=" ||
-            two === "<=" ||
-            two === "=>"
-        ) {
+        const twoCharacterOperators = [
+            "==",
+            "!=",
+            ">=",
+            "<=",
+            "=>",
+            "+=",
+            "-=",
+            "*=",
+            "/=",
+            "%=",
+            "++",
+            "--",
+            "&&",
+            "||"
+        ]
 
-            addToken(
-                two,
-                two
-            )
+        if (
+            twoCharacterOperators.includes(two)
+        ) {
+            addToken(two, two)
 
             advance()
             advance()
@@ -338,7 +310,6 @@ export function tokenize(code) {
             continue
         }
 
-        // one-character symbols
         const symbols = [
             "+",
             "-",
@@ -348,29 +319,21 @@ export function tokenize(code) {
             ">",
             "<",
             "=",
-
+            "!",
             "(",
             ")",
-
             "{",
             "}",
-
             "[",
             "]",
-
             ",",
             ";",
-
             ".",
             ":"
         ]
 
         if (symbols.includes(char)) {
-
-            addToken(
-                char,
-                char
-            )
+            addToken(char, char)
 
             advance()
 
@@ -382,10 +345,7 @@ export function tokenize(code) {
         )
     }
 
-    addToken(
-        "EOF",
-        null
-    )
+    addToken("EOF", null)
 
     return tokens
 }

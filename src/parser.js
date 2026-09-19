@@ -1,5 +1,4 @@
 export function parse(tokens) {
-
     let position = 0
 
     function peek(offset = 0) {
@@ -15,13 +14,9 @@ export function parse(tokens) {
     }
 
     function match(...types) {
-
         for (const type of types) {
-
             if (check(type)) {
-
                 advance()
-
                 return true
             }
         }
@@ -30,9 +25,7 @@ export function parse(tokens) {
     }
 
     function expect(type, message) {
-
         if (!check(type)) {
-
             const token = peek()
 
             throw new Error(
@@ -44,34 +37,21 @@ export function parse(tokens) {
         return advance()
     }
 
-    // =====================================
-    // PROGRAM
-    // =====================================
-
     function program() {
-
         const body = []
 
         while (!check("EOF")) {
-
             if (match(";")) {
                 continue
             }
 
-            body.push(
-                statement()
-            )
+            body.push(statement())
         }
 
         return body
     }
 
-    // =====================================
-    // STATEMENTS
-    // =====================================
-
     function statement() {
-
         if (
             check("LET") ||
             check("CONST")
@@ -100,9 +80,7 @@ export function parse(tokens) {
         }
 
         if (check("BREAK")) {
-
             advance()
-
             match(";")
 
             return {
@@ -111,9 +89,7 @@ export function parse(tokens) {
         }
 
         if (check("CONTINUE")) {
-
             advance()
-
             match(";")
 
             return {
@@ -125,8 +101,7 @@ export function parse(tokens) {
             return resultStatement()
         }
 
-        const expressionValue =
-            expression()
+        const expressionValue = expression()
 
         match(";")
 
@@ -136,28 +111,20 @@ export function parse(tokens) {
         }
     }
 
-    // =====================================
-    // VARIABLE
-    // =====================================
-
     function variableDeclaration() {
+        const kind = advance().type
 
-        const kind =
-            advance().type
-
-        const name =
-            expect(
-                "IDENTIFIER",
-                "Expected variable name"
-            ).value
+        const name = expect(
+            "IDENTIFIER",
+            "Expected variable name"
+        ).value
 
         expect(
             "=",
             "Expected '=' after variable name"
         )
 
-        const value =
-            expression()
+        const value = expression()
 
         match(";")
 
@@ -169,12 +136,7 @@ export function parse(tokens) {
         }
     }
 
-    // =====================================
-    // RESULT
-    // =====================================
-
     function resultStatement() {
-
         advance()
 
         expect(
@@ -182,8 +144,7 @@ export function parse(tokens) {
             "Expected '(' after result"
         )
 
-        const value =
-            expression()
+        const value = expression()
 
         expect(
             ")",
@@ -198,19 +159,13 @@ export function parse(tokens) {
         }
     }
 
-    // =====================================
-    // FUNCTION
-    // =====================================
-
     function functionDeclaration() {
-
         advance()
 
-        const name =
-            expect(
-                "IDENTIFIER",
-                "Expected function name"
-            ).value
+        const name = expect(
+            "IDENTIFIER",
+            "Expected function name"
+        ).value
 
         expect(
             "(",
@@ -220,16 +175,13 @@ export function parse(tokens) {
         const params = []
 
         if (!check(")")) {
-
             do {
-
                 params.push(
                     expect(
                         "IDENTIFIER",
                         "Expected parameter name"
                     ).value
                 )
-
             } while (match(","))
         }
 
@@ -238,8 +190,7 @@ export function parse(tokens) {
             "Expected ')' after parameters"
         )
 
-        const body =
-            block()
+        const body = block()
 
         return {
             type: "FunctionDeclaration",
@@ -249,32 +200,20 @@ export function parse(tokens) {
         }
     }
 
-    // =====================================
-    // IF
-    // =====================================
-
     function ifStatement() {
-
         advance()
 
-        const condition =
-            expression()
+        const condition = expression()
 
-        const consequent =
-            block()
+        const consequent = block()
 
         let alternate = null
 
         if (match("ELSE")) {
-
             if (check("IF")) {
-
-                alternate =
-                    ifStatement()
-
+                alternate = ifStatement()
             }
             else {
-
                 alternate = {
                     type: "BlockStatement",
                     body: block()
@@ -284,7 +223,6 @@ export function parse(tokens) {
 
         return {
             type: "IfStatement",
-
             condition,
 
             consequent: {
@@ -296,23 +234,15 @@ export function parse(tokens) {
         }
     }
 
-    // =====================================
-    // WHILE
-    // =====================================
-
     function whileStatement() {
-
         advance()
 
-        const condition =
-            expression()
+        const condition = expression()
 
-        const body =
-            block()
+        const body = block()
 
         return {
             type: "WhileStatement",
-
             condition,
 
             body: {
@@ -322,36 +252,26 @@ export function parse(tokens) {
         }
     }
 
-    // =====================================
-    // FOR IN
-    // =====================================
-
     function forStatement() {
-
         advance()
 
-        const variable =
-            expect(
-                "IDENTIFIER",
-                "Expected loop variable"
-            ).value
+        const variable = expect(
+            "IDENTIFIER",
+            "Expected loop variable"
+        ).value
 
         expect(
             "IN",
             "Expected 'in' in for loop"
         )
 
-        const iterable =
-            expression()
+        const iterable = expression()
 
-        const body =
-            block()
+        const body = block()
 
         return {
             type: "ForInStatement",
-
             variable,
-
             iterable,
 
             body: {
@@ -361,16 +281,21 @@ export function parse(tokens) {
         }
     }
 
-    // =====================================
-    // RETURN
-    // =====================================
-
     function returnStatement() {
-
         advance()
 
-        const value =
-            expression()
+        let value = {
+            type: "Literal",
+            value: null
+        }
+
+        if (
+            !check(";") &&
+            !check("}") &&
+            !check("EOF")
+        ) {
+            value = expression()
+        }
 
         match(";")
 
@@ -380,12 +305,7 @@ export function parse(tokens) {
         }
     }
 
-    // =====================================
-    // BLOCK
-    // =====================================
-
     function block() {
-
         expect(
             "{",
             "Expected '{'"
@@ -397,14 +317,11 @@ export function parse(tokens) {
             !check("}") &&
             !check("EOF")
         ) {
-
             if (match(";")) {
                 continue
             }
 
-            body.push(
-                statement()
-            )
+            body.push(statement())
         }
 
         expect(
@@ -415,34 +332,33 @@ export function parse(tokens) {
         return body
     }
 
-    // =====================================
-    // EXPRESSIONS
-    // =====================================
-
     function expression() {
         return assignment()
     }
 
-    // =====================================
-    // ASSIGNMENT
-    // =====================================
-
     function assignment() {
+        const left = logicalOr()
 
-        const left =
-            logicalOr()
+        if (
+            match(
+                "=",
+                "+=",
+                "-=",
+                "*=",
+                "/=",
+                "%="
+            )
+        ) {
+            const operator =
+                tokens[position - 1].type
 
-        if (match("=")) {
-
-            const value =
-                assignment()
+            const value = assignment()
 
             if (
                 left.type !== "Identifier" &&
                 left.type !== "MemberExpression" &&
                 left.type !== "IndexExpression"
             ) {
-
                 throw new Error(
                     "Invalid assignment target"
                 )
@@ -450,9 +366,8 @@ export function parse(tokens) {
 
             return {
                 type: "AssignmentExpression",
-
                 target: left,
-
+                operator,
                 value
             }
         }
@@ -460,25 +375,23 @@ export function parse(tokens) {
         return left
     }
 
-    // =====================================
-    // OR
-    // =====================================
-
     function logicalOr() {
+        let left = logicalAnd()
 
-        let left =
-            logicalAnd()
+        while (
+            match("OR", "||")
+        ) {
+            const operator =
+                tokens[position - 1].type
 
-        while (match("OR")) {
-
-            const right =
-                logicalAnd()
+            const right = logicalAnd()
 
             left = {
                 type: "BinaryExpression",
-
-                operator: "OR",
-
+                operator:
+                    operator === "||"
+                        ? "OR"
+                        : operator,
                 left,
                 right
             }
@@ -486,26 +399,24 @@ export function parse(tokens) {
 
         return left
     }
-
-    // =====================================
-    // AND
-    // =====================================
 
     function logicalAnd() {
+        let left = equality()
 
-        let left =
-            equality()
+        while (
+            match("AND", "&&")
+        ) {
+            const operator =
+                tokens[position - 1].type
 
-        while (match("AND")) {
-
-            const right =
-                equality()
+            const right = equality()
 
             left = {
                 type: "BinaryExpression",
-
-                operator: "AND",
-
+                operator:
+                    operator === "&&"
+                        ? "AND"
+                        : operator,
                 left,
                 right
             }
@@ -514,31 +425,21 @@ export function parse(tokens) {
         return left
     }
 
-    // =====================================
-    // EQUALITY
-    // =====================================
-
     function equality() {
-
-        let left =
-            comparison()
+        let left = comparison()
 
         while (
             check("==") ||
             check("!=")
         ) {
-
             const operator =
                 advance().type
 
-            const right =
-                comparison()
+            const right = comparison()
 
             left = {
                 type: "BinaryExpression",
-
                 operator,
-
                 left,
                 right
             }
@@ -547,14 +448,8 @@ export function parse(tokens) {
         return left
     }
 
-    // =====================================
-    // COMPARISON
-    // =====================================
-
     function comparison() {
-
-        let left =
-            term()
+        let left = term()
 
         while (
             check(">") ||
@@ -562,18 +457,14 @@ export function parse(tokens) {
             check(">=") ||
             check("<=")
         ) {
-
             const operator =
                 advance().type
 
-            const right =
-                term()
+            const right = term()
 
             left = {
                 type: "BinaryExpression",
-
                 operator,
-
                 left,
                 right
             }
@@ -582,31 +473,21 @@ export function parse(tokens) {
         return left
     }
 
-    // =====================================
-    // TERM
-    // =====================================
-
     function term() {
-
-        let left =
-            factor()
+        let left = factor()
 
         while (
             check("+") ||
             check("-")
         ) {
-
             const operator =
                 advance().type
 
-            const right =
-                factor()
+            const right = factor()
 
             left = {
                 type: "BinaryExpression",
-
                 operator,
-
                 left,
                 right
             }
@@ -615,32 +496,22 @@ export function parse(tokens) {
         return left
     }
 
-    // =====================================
-    // FACTOR
-    // =====================================
-
     function factor() {
-
-        let left =
-            unary()
+        let left = unary()
 
         while (
             check("*") ||
             check("/") ||
             check("%")
         ) {
-
             const operator =
                 advance().type
 
-            const right =
-                unary()
+            const right = unary()
 
             left = {
                 type: "BinaryExpression",
-
                 operator,
-
                 left,
                 right
             }
@@ -649,61 +520,44 @@ export function parse(tokens) {
         return left
     }
 
-    // =====================================
-    // UNARY
-    // =====================================
-
     function unary() {
-
-        if (match("NOT")) {
+        if (
+            match(
+                "NOT",
+                "!",
+                "+",
+                "-",
+                "++",
+                "--"
+            )
+        ) {
+            const operator =
+                tokens[position - 1].type
 
             return {
                 type: "UnaryExpression",
-
-                operator: "NOT",
-
-                argument: unary()
-            }
-        }
-
-        if (match("-")) {
-
-            return {
-                type: "UnaryExpression",
-
-                operator: "-",
-
-                argument: unary()
+                operator:
+                    operator === "!"
+                        ? "NOT"
+                        : operator,
+                argument: unary(),
+                prefix: true
             }
         }
 
         return postfix()
     }
 
-    // =====================================
-    // POSTFIX
-    // =====================================
-
     function postfix() {
-
-        let value =
-            primary()
+        let value = primary()
 
         while (true) {
-
-            // function call
             if (match("(")) {
-
                 const args = []
 
                 if (!check(")")) {
-
                     do {
-
-                        args.push(
-                            expression()
-                        )
-
+                        args.push(expression())
                     } while (match(","))
                 }
 
@@ -714,20 +568,15 @@ export function parse(tokens) {
 
                 value = {
                     type: "CallExpression",
-
                     callee: value,
-
                     arguments: args
                 }
 
                 continue
             }
 
-            // array index
             if (match("[")) {
-
-                const index =
-                    expression()
+                const index = expression()
 
                 expect(
                     "]",
@@ -736,30 +585,37 @@ export function parse(tokens) {
 
                 value = {
                     type: "IndexExpression",
-
                     object: value,
-
                     index
                 }
 
                 continue
             }
 
-            // property
             if (match(".")) {
-
-                const property =
-                    expect(
-                        "IDENTIFIER",
-                        "Expected property name"
-                    ).value
+                const property = expect(
+                    "IDENTIFIER",
+                    "Expected property name"
+                ).value
 
                 value = {
                     type: "MemberExpression",
-
                     object: value,
-
                     property
+                }
+
+                continue
+            }
+
+            if (
+                match("++", "--")
+            ) {
+                value = {
+                    type: "UnaryExpression",
+                    operator:
+                        tokens[position - 1].type,
+                    argument: value,
+                    prefix: false
                 }
 
                 continue
@@ -771,14 +627,8 @@ export function parse(tokens) {
         return value
     }
 
-    // =====================================
-    // PRIMARY
-    // =====================================
-
     function primary() {
-
-        const token =
-            advance()
+        const token = advance()
 
         if (!token) {
             throw new Error(
@@ -786,57 +636,77 @@ export function parse(tokens) {
             )
         }
 
-        // literal
         if (
             token.type === "NUMBER" ||
             token.type === "STRING" ||
             token.type === "BOOLEAN"
         ) {
-
             return {
                 type: "Literal",
                 value: token.value
             }
         }
 
-        // identifier
+        if (token.type === "NULL") {
+            return {
+                type: "Literal",
+                value: null
+            }
+        }
+
+        if (token.type === "UNDEFINED") {
+            return {
+                type: "Literal",
+                value: undefined
+            }
+        }
+
         if (
             token.type === "IDENTIFIER"
         ) {
-
             return {
                 type: "Identifier",
                 name: token.value
             }
         }
 
-        // grouped
         if (token.type === "(") {
-
-            const value =
-                expression()
+            const value = expression()
 
             expect(
                 ")",
                 "Expected ')'"
             )
 
+            // Arrow function
+            if (match("=>")) {
+                const params = []
+
+                if (value.type === "Identifier") {
+                    params.push(value.name)
+                }
+                else {
+                    throw new Error(
+                        "Invalid arrow function parameters"
+                    )
+                }
+
+                return arrowFunction(
+                    params
+                )
+            }
+
             return value
         }
 
-        // array
         if (token.type === "[") {
-
             const elements = []
 
             if (!check("]")) {
-
                 do {
-
                     elements.push(
                         expression()
                     )
-
                 } while (match(","))
             }
 
@@ -851,46 +721,35 @@ export function parse(tokens) {
             }
         }
 
-        // object
         if (token.type === "{") {
-
             const properties = []
 
             if (!check("}")) {
-
                 do {
-
-                    const keyToken =
-                        advance()
+                    const keyToken = advance()
 
                     if (
-                        keyToken.type !==
-                        "IDENTIFIER" &&
-                        keyToken.type !==
-                        "STRING"
+                        keyToken.type !== "IDENTIFIER" &&
+                        keyToken.type !== "STRING"
                     ) {
-
                         throw new Error(
                             "Expected object key"
                         )
                     }
 
-                    const key =
-                        keyToken.value
+                    const key = keyToken.value
 
                     expect(
                         ":",
                         "Expected ':' after object key"
                     )
 
-                    const value =
-                        expression()
+                    const value = expression()
 
                     properties.push({
                         key,
                         value
                     })
-
                 } while (match(","))
             }
 
@@ -908,6 +767,28 @@ export function parse(tokens) {
         throw new Error(
             `Unexpected token "${token.value}"`
         )
+    }
+
+    function arrowFunction(params) {
+        let body
+
+        if (check("{")) {
+            body = block()
+        }
+        else {
+            body = [
+                {
+                    type: "ReturnStatement",
+                    value: expression()
+                }
+            ]
+        }
+
+        return {
+            type: "FunctionExpression",
+            params,
+            body
+        }
     }
 
     return program()

@@ -1,11 +1,9 @@
 export function interpret(ast) {
-
     const globalScope = createScope(null)
 
     const functions = Object.create(null)
 
     class ReturnSignal {
-
         constructor(value) {
             this.value = value
         }
@@ -15,12 +13,15 @@ export function interpret(ast) {
 
     class ContinueSignal {}
 
-    // =====================================
-    // SCOPE
-    // =====================================
+    class WolvenFunction {
+        constructor(params, body, closure) {
+            this.params = params
+            this.body = body
+            this.closure = closure
+        }
+    }
 
     function createScope(parent) {
-
         return {
             values: Object.create(null),
             constants: new Set(),
@@ -29,11 +30,9 @@ export function interpret(ast) {
     }
 
     function findScope(scope, name) {
-
         let current = scope
 
         while (current) {
-
             if (
                 Object.prototype.hasOwnProperty.call(
                     current.values,
@@ -43,20 +42,16 @@ export function interpret(ast) {
                 return current
             }
 
-            current =
-                current.parent
+            current = current.parent
         }
 
         return null
     }
 
     function getVariable(scope, name) {
-
-        const owner =
-            findScope(scope, name)
+        const owner = findScope(scope, name)
 
         if (!owner) {
-
             throw new Error(
                 `Variable "${name}" is not defined`
             )
@@ -71,21 +66,18 @@ export function interpret(ast) {
         value,
         constant
     ) {
-
         if (
             Object.prototype.hasOwnProperty.call(
                 scope.values,
                 name
             )
         ) {
-
             throw new Error(
                 `Variable "${name}" already exists`
             )
         }
 
-        scope.values[name] =
-            value
+        scope.values[name] = value
 
         if (constant) {
             scope.constants.add(name)
@@ -97,68 +89,37 @@ export function interpret(ast) {
         name,
         value
     ) {
-
-        const owner =
-            findScope(scope, name)
+        const owner = findScope(scope, name)
 
         if (!owner) {
-
             throw new Error(
                 `Variable "${name}" is not defined`
             )
         }
 
-        if (
-            owner.constants.has(name)
-        ) {
-
+        if (owner.constants.has(name)) {
             throw new Error(
                 `Cannot assign to constant "${name}"`
             )
         }
 
-        owner.values[name] =
-            value
+        owner.values[name] = value
 
         return value
     }
 
-    // =====================================
-    // EVALUATE
-    // =====================================
-
-    function evaluate(
-        node,
-        scope
-    ) {
-
+    function evaluate(node, scope) {
         switch (node.type) {
-
-            // ---------------------------------
-            // Literal
-            // ---------------------------------
-
             case "Literal":
-
                 return node.value
 
-            // ---------------------------------
-            // Identifier
-            // ---------------------------------
-
             case "Identifier":
-
                 return getVariable(
                     scope,
                     node.name
                 )
 
-            // ---------------------------------
-            // Array
-            // ---------------------------------
-
             case "ArrayExpression":
-
                 return node.elements.map(
                     element =>
                         evaluate(
@@ -167,19 +128,13 @@ export function interpret(ast) {
                         )
                 )
 
-            // ---------------------------------
-            // Object
-            // ---------------------------------
-
             case "ObjectExpression": {
-
                 const object = {}
 
                 for (
                     const property
                     of node.properties
                 ) {
-
                     object[property.key] =
                         evaluate(
                             property.value,
@@ -190,139 +145,36 @@ export function interpret(ast) {
                 return object
             }
 
-            // ---------------------------------
-            // Unary
-            // ---------------------------------
-
-            case "UnaryExpression": {
-
-                const value =
-                    evaluate(
-                        node.argument,
-                        scope
-                    )
-
-                if (
-                    node.operator === "NOT"
-                ) {
-                    return !value
-                }
-
-                if (
-                    node.operator === "-"
-                ) {
-                    return -value
-                }
-
-                throw new Error(
-                    `Unknown unary operator "${node.operator}"`
+            case "FunctionExpression":
+                return new WolvenFunction(
+                    node.params,
+                    node.body,
+                    scope
                 )
-            }
 
-            // ---------------------------------
-            // Binary
-            // ---------------------------------
+            case "UnaryExpression":
+                return evaluateUnary(
+                    node,
+                    scope
+                )
 
-            case "BinaryExpression": {
-
-                const left =
-                    evaluate(
-                        node.left,
-                        scope
-                    )
-
-                // AND short circuit
-                if (
-                    node.operator === "AND"
-                ) {
-
-                    return (
-                        left &&
-                        evaluate(
-                            node.right,
-                            scope
-                        )
-                    )
-                }
-
-                // OR short circuit
-                if (
-                    node.operator === "OR"
-                ) {
-
-                    return (
-                        left ||
-                        evaluate(
-                            node.right,
-                            scope
-                        )
-                    )
-                }
-
-                const right =
-                    evaluate(
-                        node.right,
-                        scope
-                    )
-
-                switch (
-                    node.operator
-                ) {
-
-                    case "+":
-                        return left + right
-
-                    case "-":
-                        return left - right
-
-                    case "*":
-                        return left * right
-
-                    case "/":
-
-                        if (right === 0) {
-
-                            throw new Error(
-                                "Cannot divide by zero"
-                            )
-                        }
-
-                        return left / right
-
-                    case "%":
-                        return left % right
-
-                    case "==":
-                        return left === right
-
-                    case "!=":
-                        return left !== right
-
-                    case ">":
-                        return left > right
-
-                    case "<":
-                        return left < right
-
-                    case ">=":
-                        return left >= right
-
-                    case "<=":
-                        return left <= right
-
-                    default:
-
-                        throw new Error(
-                            `Unknown operator "${node.operator}"`
-                        )
-                }
-            }
-
-            // ---------------------------------
-            // Assignment
-            // ---------------------------------
+            case "BinaryExpression":
+                return evaluateBinary(
+                    node,
+                    scope
+                )
 
             case "AssignmentExpression": {
+                const current =
+                    node.target.type === "Identifier"
+                        ? getVariable(
+                            scope,
+                            node.target.name
+                        )
+                        : evaluate(
+                            node.target,
+                            scope
+                        )
 
                 const value =
                     evaluate(
@@ -330,19 +182,58 @@ export function interpret(ast) {
                         scope
                     )
 
+                let finalValue
+
+                switch (node.operator) {
+                    case "=":
+                        finalValue = value
+                        break
+
+                    case "+=":
+                        finalValue =
+                            current + value
+                        break
+
+                    case "-=":
+                        finalValue =
+                            current - value
+                        break
+
+                    case "*=":
+                        finalValue =
+                            current * value
+                        break
+
+                    case "/=":
+                        if (value === 0) {
+                            throw new Error(
+                                "Cannot divide by zero"
+                            )
+                        }
+
+                        finalValue =
+                            current / value
+                        break
+
+                    case "%=":
+                        finalValue =
+                            current % value
+                        break
+
+                    default:
+                        throw new Error(
+                            `Unknown assignment operator "${node.operator}"`
+                        )
+                }
+
                 return assignTarget(
                     node.target,
-                    value,
+                    finalValue,
                     scope
                 )
             }
 
-            // ---------------------------------
-            // Index
-            // ---------------------------------
-
             case "IndexExpression": {
-
                 const object =
                     evaluate(
                         node.object,
@@ -359,7 +250,6 @@ export function interpret(ast) {
                     object === null ||
                     object === undefined
                 ) {
-
                     throw new Error(
                         "Cannot index null or undefined"
                     )
@@ -368,12 +258,7 @@ export function interpret(ast) {
                 return object[index]
             }
 
-            // ---------------------------------
-            // Member
-            // ---------------------------------
-
             case "MemberExpression": {
-
                 const object =
                     evaluate(
                         node.object,
@@ -384,7 +269,6 @@ export function interpret(ast) {
                     object === null ||
                     object === undefined
                 ) {
-
                     throw new Error(
                         `Cannot access property "${node.property}"`
                     )
@@ -395,41 +279,157 @@ export function interpret(ast) {
                 ]
             }
 
-            // ---------------------------------
-            // Function / Method call
-            // ---------------------------------
-
             case "CallExpression":
-
                 return callExpression(
                     node,
                     scope
                 )
 
             default:
-
                 throw new Error(
                     `Cannot evaluate "${node.type}"`
                 )
         }
     }
 
-    // =====================================
-    // ASSIGNMENT TARGET
-    // =====================================
+    function evaluateUnary(node, scope) {
+        if (
+            node.operator === "++" ||
+            node.operator === "--"
+        ) {
+            const oldValue =
+                evaluate(
+                    node.argument,
+                    scope
+                )
+
+            const newValue =
+                node.operator === "++"
+                    ? oldValue + 1
+                    : oldValue - 1
+
+            assignTarget(
+                node.argument,
+                newValue,
+                scope
+            )
+
+            return node.prefix
+                ? newValue
+                : oldValue
+        }
+
+        const value =
+            evaluate(
+                node.argument,
+                scope
+            )
+
+        if (node.operator === "NOT") {
+            return !value
+        }
+
+        if (node.operator === "+") {
+            return +value
+        }
+
+        if (node.operator === "-") {
+            return -value
+        }
+
+        throw new Error(
+            `Unknown unary operator "${node.operator}"`
+        )
+    }
+
+    function evaluateBinary(node, scope) {
+        const left =
+            evaluate(
+                node.left,
+                scope
+            )
+
+        if (node.operator === "AND") {
+            return (
+                left &&
+                evaluate(
+                    node.right,
+                    scope
+                )
+            )
+        }
+
+        if (node.operator === "OR") {
+            return (
+                left ||
+                evaluate(
+                    node.right,
+                    scope
+                )
+            )
+        }
+
+        const right =
+            evaluate(
+                node.right,
+                scope
+            )
+
+        switch (node.operator) {
+            case "+":
+                return left + right
+
+            case "-":
+                return left - right
+
+            case "*":
+                return left * right
+
+            case "/":
+                if (right === 0) {
+                    throw new Error(
+                        "Cannot divide by zero"
+                    )
+                }
+
+                return left / right
+
+            case "%":
+                return left % right
+
+            case "==":
+                return left === right
+
+            case "!=":
+                return left !== right
+
+            case ">":
+                return left > right
+
+            case "<":
+                return left < right
+
+            case ">=":
+                return left >= right
+
+            case "<=":
+                return left <= right
+
+            default:
+                throw new Error(
+                    `Unknown operator "${node.operator}"`
+                )
+        }
+    }
 
     function assignTarget(
         target,
         value,
         scope
     ) {
-
-        // variable
         if (
-            target.type ===
-            "Identifier"
+            target.type === "Identifier"
         ) {
-
             return assignVariable(
                 scope,
                 target.name,
@@ -437,12 +437,9 @@ export function interpret(ast) {
             )
         }
 
-        // object property
         if (
-            target.type ===
-            "MemberExpression"
+            target.type === "MemberExpression"
         ) {
-
             const object =
                 evaluate(
                     target.object,
@@ -453,9 +450,8 @@ export function interpret(ast) {
                 object === null ||
                 object === undefined
             ) {
-
                 throw new Error(
-                    "Cannot assign property on null"
+                    "Cannot assign property on null or undefined"
                 )
             }
 
@@ -466,12 +462,9 @@ export function interpret(ast) {
             return value
         }
 
-        // array index
         if (
-            target.type ===
-            "IndexExpression"
+            target.type === "IndexExpression"
         ) {
-
             const object =
                 evaluate(
                     target.object,
@@ -484,8 +477,16 @@ export function interpret(ast) {
                     scope
                 )
 
-            object[index] =
-                value
+            if (
+                object === null ||
+                object === undefined
+            ) {
+                throw new Error(
+                    "Cannot assign index on null or undefined"
+                )
+            }
+
+            object[index] = value
 
             return value
         }
@@ -495,32 +496,24 @@ export function interpret(ast) {
         )
     }
 
-    // =====================================
-    // FUNCTION / METHOD CALL
-    // =====================================
-
     function callExpression(
         node,
         scope
     ) {
-
-        // ---------------------------------
-        // Normal function
-        // ---------------------------------
-
         if (
-            node.callee.type ===
-            "Identifier"
+            node.callee.type === "Identifier"
         ) {
-
             const name =
                 node.callee.name
 
             const fn =
-                functions[name]
+                functions[name] ??
+                getVariableSafe(
+                    scope,
+                    name
+                )
 
             if (!fn) {
-
                 throw new Error(
                     `Function "${name}" not found`
                 )
@@ -535,21 +528,16 @@ export function interpret(ast) {
                         )
                 )
 
-            return executeFunction(
+            return executeCallable(
                 fn,
                 args
             )
         }
 
-        // ---------------------------------
-        // Method
-        // ---------------------------------
-
         if (
             node.callee.type ===
             "MemberExpression"
         ) {
-
             const object =
                 evaluate(
                     node.callee.object,
@@ -571,220 +559,532 @@ export function interpret(ast) {
             return callMethod(
                 object,
                 method,
-                args
+                args,
+                scope
             )
         }
 
-        throw new Error(
-            "Invalid function call"
+        const fn =
+            evaluate(
+                node.callee,
+                scope
+            )
+
+        const args =
+            node.arguments.map(
+                argument =>
+                    evaluate(
+                        argument,
+                        scope
+                    )
+            )
+
+        return executeCallable(
+            fn,
+            args
         )
     }
 
-    // =====================================
-    // ARRAY METHODS
-    // =====================================
+    function getVariableSafe(
+        scope,
+        name
+    ) {
+        const owner =
+            findScope(
+                scope,
+                name
+            )
+
+        if (!owner) {
+            return null
+        }
+
+        return owner.values[name]
+    }
+
+    function executeCallable(fn, args) {
+        if (
+            fn instanceof WolvenFunction
+        ) {
+            const local =
+                createScope(
+                    fn.closure
+                )
+
+            fn.params.forEach(
+                (param, index) => {
+                    defineVariable(
+                        local,
+                        param,
+                        args[index],
+                        false
+                    )
+                }
+            )
+
+            try {
+                executeBlock(
+                    fn.body,
+                    local
+                )
+            }
+            catch (signal) {
+                if (
+                    signal instanceof
+                    ReturnSignal
+                ) {
+                    return signal.value
+                }
+
+                throw signal
+            }
+
+            return null
+        }
+
+        if (typeof fn === "function") {
+            return fn(...args)
+        }
+
+        throw new Error(
+            "Value is not callable"
+        )
+    }
 
     function callArrayMethod(
         array,
         method,
         args
     ) {
-
-        if (method === "add") {
-
-            if (args.length !== 1) {
-
-                throw new Error(
-                    "add() expects 1 argument"
+        switch (method) {
+            case "add":
+                requireArgs(
+                    method,
+                    args,
+                    1
                 )
+
+                array.push(args[0])
+                return array
+
+            case "remove": {
+                requireArgs(
+                    method,
+                    args,
+                    1
+                )
+
+                const index =
+                    array.indexOf(args[0])
+
+                if (index !== -1) {
+                    array.splice(
+                        index,
+                        1
+                    )
+                }
+
+                return array
             }
 
-            array.push(args[0])
-
-            return array
-        }
-
-        if (method === "remove") {
-
-            if (args.length !== 1) {
-
-                throw new Error(
-                    "remove() expects 1 argument"
+            case "has":
+                requireArgs(
+                    method,
+                    args,
+                    1
                 )
-            }
 
-            const index =
-                array.indexOf(
+                return array.includes(
                     args[0]
                 )
 
-            if (index !== -1) {
+            case "size":
+                requireArgs(
+                    method,
+                    args,
+                    0
+                )
 
-                array.splice(
-                    index,
+                return array.length
+
+            case "first":
+                requireArgs(
+                    method,
+                    args,
+                    0
+                )
+
+                return array[0]
+
+            case "last":
+                requireArgs(
+                    method,
+                    args,
+                    0
+                )
+
+                return array[
+                    array.length - 1
+                ]
+
+            case "clear":
+                requireArgs(
+                    method,
+                    args,
+                    0
+                )
+
+                array.length = 0
+                return array
+
+            case "reverse":
+                requireArgs(
+                    method,
+                    args,
+                    0
+                )
+
+                array.reverse()
+                return array
+
+            case "contains":
+                requireArgs(
+                    method,
+                    args,
                     1
                 )
-            }
 
-            return array
-        }
+                return array.includes(
+                    args[0]
+                )
 
-        if (method === "has") {
+            case "index":
+                requireArgs(
+                    method,
+                    args,
+                    1
+                )
 
-            if (args.length !== 1) {
+                return array.indexOf(
+                    args[0]
+                )
 
-                throw new Error(
-                    "has() expects 1 argument"
+            case "slice":
+                if (
+                    args.length < 1 ||
+                    args.length > 2
+                ) {
+                    throw new Error(
+                        "slice() expects 1 or 2 arguments"
+                    )
+                }
+
+                return array.slice(
+                    args[0],
+                    args[1]
+                )
+
+            case "join":
+                if (args.length > 1) {
+                    throw new Error(
+                        "join() expects 0 or 1 arguments"
+                    )
+                }
+
+                return array.join(
+                    args[0] ?? ","
+                )
+
+            case "map": {
+                requireArgs(
+                    method,
+                    args,
+                    1
+                )
+
+                return array.map(
+                    item =>
+                        executeCallable(
+                            args[0],
+                            [item]
+                        )
                 )
             }
 
-            return array.includes(
-                args[0]
-            )
+            case "filter": {
+                requireArgs(
+                    method,
+                    args,
+                    1
+                )
+
+                return array.filter(
+                    item =>
+                        executeCallable(
+                            args[0],
+                            [item]
+                        )
+                )
+            }
+
+            case "find": {
+                requireArgs(
+                    method,
+                    args,
+                    1
+                )
+
+                return array.find(
+                    item =>
+                        executeCallable(
+                            args[0],
+                            [item]
+                        )
+                )
+            }
+
+            case "sort":
+                requireArgs(
+                    method,
+                    args,
+                    0
+                )
+
+                return [...array].sort(
+                    (a, b) =>
+                        typeof a === "number" &&
+                        typeof b === "number"
+                            ? a - b
+                            : String(a).localeCompare(
+                                String(b)
+                            )
+                )
+
+            default:
+                throw new Error(
+                    `Unknown array method "${method}"`
+                )
         }
-
-        if (method === "size") {
-
-            return array.length
-        }
-
-        if (method === "first") {
-
-            return array[0]
-        }
-
-        if (method === "last") {
-
-            return array[
-                array.length - 1
-            ]
-        }
-
-        if (method === "clear") {
-
-            array.length = 0
-
-            return array
-        }
-
-        if (method === "reverse") {
-
-            array.reverse()
-
-            return array
-        }
-
-        throw new Error(
-            `Unknown array method "${method}"`
-        )
     }
-
-    // =====================================
-    // OBJECT METHODS
-    // =====================================
 
     function callObjectMethod(
         object,
         method,
         args
     ) {
-
-        if (method === "get") {
-
-            if (args.length !== 1) {
-
-                throw new Error(
-                    "get() expects 1 argument"
+        switch (method) {
+            case "get":
+                requireArgs(
+                    method,
+                    args,
+                    1
                 )
-            }
 
-            return object[
-                args[0]
-            ]
-        }
+                return object[args[0]]
 
-        if (method === "set") {
-
-            if (args.length !== 2) {
-
-                throw new Error(
-                    "set() expects 2 arguments"
+            case "set":
+                requireArgs(
+                    method,
+                    args,
+                    2
                 )
-            }
 
-            object[
-                args[0]
-            ] = args[1]
-
-            return object
-        }
-
-        if (method === "has") {
-
-            if (args.length !== 1) {
-
-                throw new Error(
-                    "has() expects 1 argument"
-                )
-            }
-
-            return Object.prototype
-                .hasOwnProperty.call(
-                    object,
+                object[
                     args[0]
+                ] = args[1]
+
+                return object
+
+            case "has":
+                requireArgs(
+                    method,
+                    args,
+                    1
                 )
-        }
 
-        if (method === "keys") {
+                return Object.prototype
+                    .hasOwnProperty.call(
+                        object,
+                        args[0]
+                    )
 
-            return Object.keys(
-                object
-            )
-        }
+            case "keys":
+                requireArgs(
+                    method,
+                    args,
+                    0
+                )
 
-        if (method === "size") {
+                return Object.keys(object)
 
-            return Object.keys(
-                object
-            ).length
-        }
+            case "values":
+                requireArgs(
+                    method,
+                    args,
+                    0
+                )
 
-        if (method === "remove") {
+                return Object.values(object)
 
-            if (args.length !== 1) {
+            case "size":
+                requireArgs(
+                    method,
+                    args,
+                    0
+                )
 
+                return Object.keys(
+                    object
+                ).length
+
+            case "remove":
+                requireArgs(
+                    method,
+                    args,
+                    1
+                )
+
+                delete object[
+                    args[0]
+                ]
+
+                return object
+
+            default:
                 throw new Error(
-                    "remove() expects 1 argument"
+                    `Unknown object method "${method}"`
                 )
-            }
-
-            delete object[
-                args[0]
-            ]
-
-            return object
         }
-
-        throw new Error(
-            `Unknown object method "${method}"`
-        )
     }
 
-    // =====================================
-    // METHOD DISPATCH
-    // =====================================
+    function callStringMethod(
+        string,
+        method,
+        args
+    ) {
+        switch (method) {
+            case "size":
+            case "length":
+                requireArgs(
+                    method,
+                    args,
+                    0
+                )
+
+                return string.length
+
+            case "upper":
+            case "uppercase":
+                requireArgs(
+                    method,
+                    args,
+                    0
+                )
+
+                return string.toUpperCase()
+
+            case "lower":
+            case "lowercase":
+                requireArgs(
+                    method,
+                    args,
+                    0
+                )
+
+                return string.toLowerCase()
+
+            case "trim":
+                requireArgs(
+                    method,
+                    args,
+                    0
+                )
+
+                return string.trim()
+
+            case "contains":
+                requireArgs(
+                    method,
+                    args,
+                    1
+                )
+
+                return string.includes(
+                    String(args[0])
+                )
+
+            case "starts":
+                requireArgs(
+                    method,
+                    args,
+                    1
+                )
+
+                return string.startsWith(
+                    String(args[0])
+                )
+
+            case "ends":
+                requireArgs(
+                    method,
+                    args,
+                    1
+                )
+
+                return string.endsWith(
+                    String(args[0])
+                )
+
+            case "slice":
+                if (
+                    args.length < 1 ||
+                    args.length > 2
+                ) {
+                    throw new Error(
+                        "slice() expects 1 or 2 arguments"
+                    )
+                }
+
+                return string.slice(
+                    args[0],
+                    args[1]
+                )
+
+            case "replace":
+                requireArgs(
+                    method,
+                    args,
+                    2
+                )
+
+                return string.replace(
+                    String(args[0]),
+                    String(args[1])
+                )
+
+            default:
+                throw new Error(
+                    `Unknown string method "${method}"`
+                )
+        }
+    }
 
     function callMethod(
         object,
         method,
-        args
+        args,
+        scope
     ) {
-
-        if (
-            Array.isArray(object)
-        ) {
-
+        if (Array.isArray(object)) {
             return callArrayMethod(
+                object,
+                method,
+                args
+            )
+        }
+
+        if (typeof object === "string") {
+            return callStringMethod(
                 object,
                 method,
                 args
@@ -795,7 +1095,6 @@ export function interpret(ast) {
             object !== null &&
             typeof object === "object"
         ) {
-
             return callObjectMethod(
                 object,
                 method,
@@ -808,73 +1107,21 @@ export function interpret(ast) {
         )
     }
 
-    // =====================================
-    // FUNCTION EXECUTION
-    // =====================================
-
-    function executeFunction(
-        fn,
-        args
+    function requireArgs(
+        method,
+        args,
+        count
     ) {
-
-        const local =
-            createScope(
-                globalScope
+        if (args.length !== count) {
+            throw new Error(
+                `${method}() expects ${count} argument(s)`
             )
-
-        fn.params.forEach(
-            (param, index) => {
-
-                defineVariable(
-                    local,
-                    param,
-                    args[index],
-                    false
-                )
-            }
-        )
-
-        try {
-
-            executeBlock(
-                fn.body,
-                local
-            )
-
         }
-        catch (signal) {
-
-            if (
-                signal instanceof
-                ReturnSignal
-            ) {
-
-                return signal.value
-            }
-
-            throw signal
-        }
-
-        return null
     }
 
-    // =====================================
-    // EXECUTE
-    // =====================================
-
-    function execute(
-        node,
-        scope
-    ) {
-
+    function execute(node, scope) {
         switch (node.type) {
-
-            // ---------------------------------
-            // Variable
-            // ---------------------------------
-
             case "VariableDeclaration": {
-
                 const value =
                     evaluate(
                         node.value,
@@ -891,12 +1138,7 @@ export function interpret(ast) {
                 return
             }
 
-            // ---------------------------------
-            // Expression
-            // ---------------------------------
-
             case "ExpressionStatement":
-
                 evaluate(
                     node.expression,
                     scope
@@ -904,12 +1146,7 @@ export function interpret(ast) {
 
                 return
 
-            // ---------------------------------
-            // Result
-            // ---------------------------------
-
             case "ResultStatement": {
-
                 const value =
                     evaluate(
                         node.value,
@@ -923,23 +1160,27 @@ export function interpret(ast) {
                 return
             }
 
-            // ---------------------------------
-            // Function
-            // ---------------------------------
+            case "FunctionDeclaration": {
+                const fn =
+                    new WolvenFunction(
+                        node.params,
+                        node.body,
+                        scope
+                    )
 
-            case "FunctionDeclaration":
+                functions[node.name] = fn
 
-                functions[node.name] =
-                    node
+                defineVariable(
+                    scope,
+                    node.name,
+                    fn,
+                    true
+                )
 
                 return
-
-            // ---------------------------------
-            // If
-            // ---------------------------------
+            }
 
             case "IfStatement": {
-
                 const condition =
                     evaluate(
                         node.condition,
@@ -947,7 +1188,6 @@ export function interpret(ast) {
                     )
 
                 if (condition) {
-
                     executeBlock(
                         node.consequent.body,
                         createScope(scope)
@@ -957,20 +1197,16 @@ export function interpret(ast) {
                 }
 
                 if (node.alternate) {
-
                     if (
                         node.alternate.type ===
                         "IfStatement"
                     ) {
-
                         execute(
                             node.alternate,
                             scope
                         )
-
                     }
                     else {
-
                         executeBlock(
                             node.alternate.body,
                             createScope(scope)
@@ -981,29 +1217,20 @@ export function interpret(ast) {
                 return
             }
 
-            // ---------------------------------
-            // While
-            // ---------------------------------
-
             case "WhileStatement": {
-
                 while (
                     evaluate(
                         node.condition,
                         scope
                     )
                 ) {
-
                     try {
-
                         executeBlock(
                             node.body.body,
                             createScope(scope)
                         )
-
                     }
                     catch (signal) {
-
                         if (
                             signal instanceof
                             BreakSignal
@@ -1025,12 +1252,7 @@ export function interpret(ast) {
                 return
             }
 
-            // ---------------------------------
-            // For
-            // ---------------------------------
-
             case "ForInStatement": {
-
                 const iterable =
                     evaluate(
                         node.iterable,
@@ -1041,7 +1263,6 @@ export function interpret(ast) {
                     !Array.isArray(iterable) &&
                     typeof iterable !== "string"
                 ) {
-
                     throw new Error(
                         "for ... in requires an array or string"
                     )
@@ -1050,7 +1271,6 @@ export function interpret(ast) {
                 for (
                     const item of iterable
                 ) {
-
                     const loopScope =
                         createScope(scope)
 
@@ -1062,15 +1282,12 @@ export function interpret(ast) {
                     )
 
                     try {
-
                         executeBlock(
                             node.body.body,
                             loopScope
                         )
-
                     }
                     catch (signal) {
-
                         if (
                             signal instanceof
                             BreakSignal
@@ -1092,12 +1309,7 @@ export function interpret(ast) {
                 return
             }
 
-            // ---------------------------------
-            // Return
-            // ---------------------------------
-
             case "ReturnStatement":
-
                 throw new ReturnSignal(
                     evaluate(
                         node.value,
@@ -1105,41 +1317,21 @@ export function interpret(ast) {
                     )
                 )
 
-            // ---------------------------------
-            // Break
-            // ---------------------------------
-
             case "BreakStatement":
-
                 throw new BreakSignal()
 
-            // ---------------------------------
-            // Continue
-            // ---------------------------------
-
             case "ContinueStatement":
-
                 throw new ContinueSignal()
 
             default:
-
                 throw new Error(
                     `Unknown statement "${node.type}"`
                 )
         }
     }
 
-    // =====================================
-    // BLOCK
-    // =====================================
-
-    function executeBlock(
-        body,
-        scope
-    ) {
-
+    function executeBlock(body, scope) {
         for (const node of body) {
-
             execute(
                 node,
                 scope
@@ -1147,12 +1339,7 @@ export function interpret(ast) {
         }
     }
 
-    // =====================================
-    // FORMAT
-    // =====================================
-
     function formatValue(value) {
-
         if (value === null) {
             return "null"
         }
@@ -1162,7 +1349,6 @@ export function interpret(ast) {
         }
 
         if (typeof value === "object") {
-
             return JSON.stringify(
                 value,
                 null,
@@ -1172,10 +1358,6 @@ export function interpret(ast) {
 
         return String(value)
     }
-
-    // =====================================
-    // RUN
-    // =====================================
 
     executeBlock(
         ast,
